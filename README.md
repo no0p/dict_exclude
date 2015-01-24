@@ -41,3 +41,8 @@ SELECT to_tsvector('ocr_gibberish', 'fat abc cat def abd');
  'abd':5 'cat':3 'fat':1
 (1 row)
 ```
+
+
+## Note of Caution
+
+This is a prototype at the moment, so recommended for development environments only.
