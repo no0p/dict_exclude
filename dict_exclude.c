@@ -22,6 +22,7 @@ PG_MODULE_MAGIC;
 
 typedef struct
 {
+  int       size;
   regex_t   *rules;
 } DictExclude;
 
@@ -38,7 +39,10 @@ dict_exclude_init(PG_FUNCTION_ARGS)
   ListCell   *l;
 
   d = (DictExclude *) palloc0(sizeof(DictExclude));
-
+  
+  d->size = 0;
+  d->rules = (regex_t *) palloc(sizeof(regex_t));
+  
   foreach(l, dictoptions)
   {
     DefElem    *defel = (DefElem *) lfirst(l);
@@ -69,6 +73,7 @@ dict_exclude_lexize(PG_FUNCTION_ARGS)
   regmatch_t  pmatch[DICT_EXCLUDE_BACKREF_CNT];
   pg_wchar   *data;
   size_t    data_len;
+  int i;
   DictExclude    *d = (DictExclude *) PG_GETARG_POINTER(0);
   char     *in = (char *) PG_GETARG_POINTER(1);
   char     *txt = pnstrdup(in, PG_GETARG_INT32(2));
@@ -76,30 +81,35 @@ dict_exclude_lexize(PG_FUNCTION_ARGS)
 
   res[1].lexeme = NULL;
   
-  //re = RE_compile_and_cache(d->rules, REG_ADVANCED, PG_GET_COLLATION());
   data = (pg_wchar *) palloc((strlen(txt) + 1) * sizeof(pg_wchar));
   data_len = pg_mb2wchar_with_len(txt, data, strlen(txt));
   
-  regexec_result = pg_regexec(&d->rules,
-                              data,
-                              data_len,
-                              0, /* search start position */
-                              NULL,   /* no details */
-                              DICT_EXCLUDE_BACKREF_CNT,
-                              pmatch,
-                              0);
+  for(i = 0; i < d->size; i++)
+  { 
+    regexec_result = pg_regexec(&d->rules[i],
+                                data,
+                                data_len,
+                                0, /* search start position */
+                                NULL,   /* no details */
+                                DICT_EXCLUDE_BACKREF_CNT,
+                                pmatch,
+                                0);
 
-  if (regexec_result == REG_NOMATCH)
-  {
-    res[0].lexeme = txt;
+    if (regexec_result == REG_NOMATCH)
+    {
+      res[0].lexeme = txt;
+    }
+    else
+    {
+      /* reject by returning void array */
+      pfree(txt);
+      res[0].lexeme = NULL;
+      break;
+    }
   }
-  else
-  {
-    /* reject by returning void array */
-    pfree(txt);
-    res[0].lexeme = NULL;
-  }
-
+  
+  pfree(data);
+  
   PG_RETURN_POINTER(res);
 }
 
@@ -122,15 +132,13 @@ int process_rule_file(DictExclude *d)
   
   while ((line = tsearch_readline(&trst)) != NULL)
   {
-
-    char     *pbuf = line;
+    regex_t*  rule = palloc(sizeof(regex_t));
+    char*     pbuf = line;
 
     /* Trim trailing space */
     while (*pbuf && !t_isspace(pbuf))
       pbuf += pg_mblen(pbuf);
     *pbuf = '\0';
-    
-    elog(LOG, "reading a line: %s", line);
     
     //skip empty lines
     if (*line == '\0')
@@ -143,20 +151,23 @@ int process_rule_file(DictExclude *d)
     wstr = (pg_wchar *) palloc((strlen(line) + 1) * sizeof(pg_wchar));
     wlen = pg_mb2wchar_with_len(line, wstr, strlen(line));
     
-    compres = pg_regcomp(&d->rules, wstr, wlen, REG_ADVANCED, DEFAULT_COLLATION_OID);
+    compres = pg_regcomp(rule, wstr, wlen, REG_ADVANCED, DEFAULT_COLLATION_OID);
     if (compres != REG_OKAY)
     {
       char    errstr[100];
-
-      pg_regerror(compres, &d->rules, errstr, sizeof(errstr));
+      
+      pg_regerror(compres, rule, errstr, sizeof(errstr));
       ereport(ERROR,
              (errcode(ERRCODE_INVALID_REGULAR_EXPRESSION),
               errmsg("invalid regular expression: %s", errstr)));
+      
+      pfree(rule);
+    } else {
+      d->rules = (regex_t *) repalloc(d->rules, sizeof(regex_t) * (d->size + 1));
+      d->rules[d->size++] = *rule;
     }
     
     pfree(wstr);
-    
-    
   }
   
   return 0;
