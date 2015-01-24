@@ -4,6 +4,8 @@ dict_exclude is a postgresql extension which provides a dictionary which can be 
 
 At the time of writing it appears like a decent solution towards this goal, but it does not use the stop word facility in text search which effectively creates a sorted list of words.
 
+The code is based largely on the excellent dictint example in postgresql/contrib.
+
 ## Installation & Usage Example
 
 ```
