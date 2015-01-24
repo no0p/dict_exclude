@@ -12,7 +12,7 @@ make
 sudo make install
 ```
 
-Next create a list of exclusionary rules by adding a file *exclude.rules* in the postgresql text search resource directory.  For example, with Postgresql 9.4 on ubuntu you might add the file */usr/share/postgresql/9.4/tsearch_data/*.
+Next create a list of exclusionary rules by adding a file *exclude.rules* in the postgresql text search resource directory.  For example, with Postgresql 9.4 on ubuntu you might add the file */usr/share/postgresql/9.4/tsearch_data/exclude.rules*.
 
 The contents of the file are regular expressions, one per line:
 
