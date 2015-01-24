@@ -1,5 +1,5 @@
 # dict_int extension
-comment = 'text search dictionary template for integers'
+comment = 'text search dictionary for regexp stopwords'
 default_version = '1.0'
-module_pathname = '$libdir/dict_int'
+module_pathname = '$libdir/dict_exclude'
 relocatable = true
