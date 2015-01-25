@@ -77,20 +77,19 @@ dict_exclude_lexize(PG_FUNCTION_ARGS)
 
     if (regexec_result == REG_NOMATCH)
     {
-      res[0].lexeme = txt;
+      /* report as unrecognized */
+      pfree(data);
+		  pfree(txt);
+		  PG_RETURN_POINTER(NULL);
     }
     else
     {
       /* reject by returning void array */
       pfree(txt);
       res[0].lexeme = NULL;
-      break;
+      PG_RETURN_POINTER(res);
     }
   }
-  
-  pfree(data);
-  
-  PG_RETURN_POINTER(res);
 }
 
 
