@@ -34,33 +34,13 @@ PG_FUNCTION_INFO_V1(dict_exclude_lexize);
 Datum
 dict_exclude_init(PG_FUNCTION_ARGS)
 {
-  List     *dictoptions = (List *) PG_GETARG_POINTER(0);
   DictExclude    *d;
-  ListCell   *l;
 
   d = (DictExclude *) palloc0(sizeof(DictExclude));
   
   d->size = 0;
   d->rules = (regex_t *) palloc(sizeof(regex_t));
   
-  foreach(l, dictoptions)
-  {
-    DefElem    *defel = (DefElem *) lfirst(l);
-
-    // TODO think of some parameters? and remove unused rulefile option
-    if (pg_strcasecmp(defel->defname, "RULEFILE") == 0)
-    {
-      elog(LOG, "skipping unsused parameter");
-    }
-    else
-    {
-      ereport(ERROR,
-          (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-           errmsg("unrecognized intdict parameter: \"%s\"",
-              defel->defname)));
-    }
-  }
-
   process_rule_file(d);
       
   PG_RETURN_POINTER(d);
