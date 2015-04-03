@@ -75,14 +75,7 @@ dict_exclude_lexize(PG_FUNCTION_ARGS)
                                 pmatch,
                                 0);
 
-    if (regexec_result == REG_NOMATCH)
-    {
-      /* report as unrecognized */
-      pfree(data);
-		  pfree(txt);
-		  PG_RETURN_POINTER(NULL);
-    }
-    else
+    if (regexec_result != REG_NOMATCH)
     {
       /* reject by returning void array */
       pfree(txt);
@@ -90,6 +83,12 @@ dict_exclude_lexize(PG_FUNCTION_ARGS)
       PG_RETURN_POINTER(res);
     }
   }
+  
+  /* report as unrecognized */
+  pfree(data);
+  pfree(txt);
+  PG_RETURN_POINTER(NULL);
+
 }
 
 
